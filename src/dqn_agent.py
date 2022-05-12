@@ -1,30 +1,16 @@
+from fcnn import FCNN
 import argparse
-from collections import deque
 import gym
-from keras.optimizers import Adam
-from keras.layers import Dense
-from keras.models import Sequential
 import numpy as np
-import random
+import pytorch
 
-def model_init(observation_space, action_space):
-    model = Sequential()
-    model.add(Dense(70, input_dim=observation_space, activation='relu'))
-    model.add(Dense(70, activation='relu'))
-    model.add(Dense(action_space, activation='linear'))
-    model.compile(loss='mse', optimizer=Adam(lr=0.0001))
-    return model
-
-class LunarLanderDQN:
-    def __init__ (self):
-        ACTION_SPACE = 4
-        OBSERVATION_SPACE = 8
-        MAX_CAP = 4500
-        self.action_space = ACTION_SPACE
-        self.observation_space = OBSERVATION_SPACE
-        self.playback_buffer = deque(maxlen=MAX_CAP)
-        self.q_model = model_init(OBSERVATION_SPACE, ACTION_SPACE)
-        self.target_q_model = model_init(OBSERVATION_SPACE, ACTION_SPACE)
+class AgentDQN:
+    def __init__ (self, action_space, observation_space):
+        PLAYBACK_MAX_CAP = 4500
+        self.action_space = action_space
+        self.observation_space = observation_space
+        self.playback_buffer = deque(maxlen=PLAYBACK_MAX_CAP)
+        self.q_model = FCNN(OBSERVATION_SPACE, ACTION_SPACE):
         self.target_q_model.set_weights(self.q_model.get_weights())
         self.epsilon = 0.99
         self.epsilon_reduction = 0.999
