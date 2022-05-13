@@ -1,5 +1,6 @@
 from collections import deque
 from fcnn import FCNN
+from nn_utils import train
 from nn_utils import predict
 import argparse
 import copy
@@ -28,7 +29,6 @@ class AgentDQN:
 
         self.epsilon = 0.99
         self.epsilon_reduction = 0.999
-        self.num_episodes = 3000
         self.gamma = 0.99
 
     def get_sample_batch(self, sample_batch_size):
@@ -48,30 +48,30 @@ class AgentDQN:
         rewards = np.vstack(sample_batch[:, REWARD_INDEX])
         actions = np.vstack(sample_batch[:, ACTION_INDEX]).T[0]
 
-        target_predictions = predict(target_q_model, next_states)
+        target_predictions = predict(self.target_q_model, next_states)
         max_actions = target_predictions.max(1)
 
-        performance_values = np.add(rewards.T, np.multiply(self.gamma, max_actions))[0]
+        action_values = np.add(rewards.T, np.multiply(self.gamma, max_actions))[0]
 
         DONE_INDEX = 4
         for sample_index in range(len(sample_batch)):
             if sample_batch[sample_index][DONE_INDEX]:
-                performance_values[sample_index] = sample_batch[sample_index][REWARD_INDEX]
+                action_values[sample_index] = sample_batch[sample_index][REWARD_INDEX]
 
         model_predictons = predict(q_model, current_states)
-        model_predictons[range(len(sample_batch)), actions] = performance_values
+        model_predictons[range(len(sample_batch)), actions] = action_values
 
         NUM_EPOCHS = 1
         train(NUM_EPOCHS, current_states, model_predictons, q_model, self.optimizer, self.criterion)
 
-    def learn(self, env):
+    def learn(self, env, num_episodes):
 
         SAMPLE_BATCH_SIZE = 32
         TARGET_UPDATE = 256
         steps = 0
         average_episode_reward = deque(maxlen=100)
 
-        for episode in range(self.num_episodes):
+        for episode in range(num_episodes):
             state_current = np.array([env.reset()])
             total_episode_rewards = 0
             frames = 0
@@ -90,7 +90,7 @@ class AgentDQN:
 
                 if len(self.playback_buffer) > SAMPLE_BATCH_SIZE:
                     sample_batch = self.get_sample_batch(SAMPLE_BATCH_SIZE)
-                    self.dqn_update(sample_batch)
+                    self.update_network(sample_batch)
 
                 state_current = next_state
 
