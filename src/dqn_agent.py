@@ -1,17 +1,21 @@
+from collections import deque
 from fcnn import FCNN
 import argparse
+import copy
 import gym
 import numpy as np
-import pytorch
+import torch
 
 class AgentDQN:
     def __init__ (self, action_space, observation_space):
-        PLAYBACK_MAX_CAP = 4500
         self.action_space = action_space
         self.observation_space = observation_space
+
+        PLAYBACK_MAX_CAP = 4500
         self.playback_buffer = deque(maxlen=PLAYBACK_MAX_CAP)
-        self.q_model = FCNN(OBSERVATION_SPACE, ACTION_SPACE):
-        self.target_q_model.set_weights(self.q_model.get_weights())
+        self.q_model = FCNN(observation_space, action_space)
+        self.target_q_model = copy.deepcopy(self.q_model)
+
         self.epsilon = 0.99
         self.epsilon_reduction = 0.999
         self.num_episodes = 3000
