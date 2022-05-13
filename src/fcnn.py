@@ -1,9 +1,5 @@
-import copy
-import time
 import torch
 import torch.nn as nn
-from nn_utils import train
-from nn_utils import validate
 
 class FCNN(nn.Module):
     def __init__(self, observation_space, action_space):

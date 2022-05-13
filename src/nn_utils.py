@@ -18,39 +18,33 @@ class MeanMeter(object):
     self.count += n
     self.mean = self.sum / self.count
 
-def train(epoch, data_loader, model, optimizer, criterion):
+def train(epoch, data, target, model, optimizer, criterion):
 
     acc = MeanMeter()
-    iter_time = MeanMeter()
     losses = MeanMeter()
 
-    for idx, (data, target) in enumerate(data_loader):
+    if torch.cuda.is_available():
+        data = data.cuda()
+        target = target.cuda()
 
-        start = time.time()
+    model.train()
+    out = model(data)
+    loss = criterion(out, target)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
 
-        if torch.cuda.is_available():
-            data = data.cuda()
-            target = target.cuda()
+    # Calc accuracy
+    value, preds = out.max(dim=-1)
+    batch_acc = preds.eq(target).sum() / target.shape[0]
 
-        model.train()
-        out = model(data)
-        loss = criterion(out, target)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        # Calc accuracy
-        value, preds = out.max(dim=-1)
-        batch_acc = preds.eq(target).sum() / target.shape[0]
-
-        # Calc means
-        losses.update(loss, out.shape[0])
-        acc.update(batch_acc, out.shape[0])
-        iter_time.update(time.time() - start)
+    # Calc means
+    losses.update(loss, out.shape[0])
+    acc.update(batch_acc, out.shape[0])
 
     return losses.mean.detach().cpu().numpy(), acc.mean.detach().cpu().numpy()
 
-def predict(model):
+def predict(model, data):
 
     model.eval()
     with torch.no_grad():
