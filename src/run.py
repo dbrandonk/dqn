@@ -1,12 +1,7 @@
+import gym
+from dqn_agent import AgentDQN
 
-def dqn_train_lunar_lander():
-
-    lunar_lander = LunarLanderDQN()
-
-    q_model = lunar_lander.dqn_learning()
-    return q_model
-
-def dqn_run_lunar_lander(q_model=None, weights_file=None):
+def run_agent(q_model=None, weights_file=None):
 
     NUM_EPISODES = 100
     ACTION_SPACE = 4
@@ -43,22 +38,24 @@ def dqn_run_lunar_lander(q_model=None, weights_file=None):
     env.close()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("training")
-    parser.add_argument("file_path")
-    args = parser.parse_args()
+    #parser = argparse.ArgumentParser()
+    #parser.add_argument("training")
+    #parser.add_argument("file_path")
+    #args = parser.parse_args()
 
-    if args.training in ['None', 'True']:
-        dqn_train_lunar_lander()
-    elif args.training in ['False']:
+    #if args.training in ['None', 'True']:
+    #    dqn_train_lunar_lander()
+    #elif args.training in ['False']:
 
-        if args.file_path in ['None']:
-            print('No file path specifed!')
-            exit(0)
+    #    if args.file_path in ['None']:
+    #        print('No file path specifed!')
+    #        exit(0)
 
-        dqn_run_lunar_lander(weights_file=args.file_path)
-        exit(0)
-    else:
-        print('Unknown Error has occured. Ensure that arguments were entered correctly.')
+    #    dqn_run_lunar_lander(weights_file=args.file_path)
+    #    exit(0)
 
-env = gym.make('LunarLander-v2')
+    env = gym.make('LunarLander-v2')
+    num_episodes = 3000
+
+    agent = AgentDQN(env.action_space.n, env.observation_space.shape[0])
+    agent.learn(env, 3000)

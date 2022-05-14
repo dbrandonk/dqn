@@ -6,6 +6,7 @@ import argparse
 import copy
 import gym
 import numpy as np
+import random
 import torch
 
 def e_greedy_action(q_model, action_space, state_current, epsilon):
@@ -25,7 +26,7 @@ class AgentDQN:
         self.q_model = FCNN(observation_space, action_space)
         self.target_q_model = copy.deepcopy(self.q_model)
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.Adam(q_model.parameters())
+        self.optimizer = torch.optim.Adam(self.q_model.parameters())
 
         self.epsilon = 0.99
         self.epsilon_reduction = 0.999
@@ -58,11 +59,11 @@ class AgentDQN:
             if sample_batch[sample_index][DONE_INDEX]:
                 action_values[sample_index] = sample_batch[sample_index][REWARD_INDEX]
 
-        model_predictons = predict(q_model, current_states)
+        model_predictons = predict(self.q_model, current_states)
         model_predictons[range(len(sample_batch)), actions] = action_values
 
         NUM_EPOCHS = 1
-        train(NUM_EPOCHS, current_states, model_predictons, q_model, self.optimizer, self.criterion)
+        train(NUM_EPOCHS, current_states, model_predictons, self.q_model, self.optimizer, self.criterion)
 
     def learn(self, env, num_episodes):
 
@@ -80,7 +81,7 @@ class AgentDQN:
                 steps += 1
                 frames += 1
 
-                action = self.e_greedy_action(state_current, self.epsilon)
+                action = e_greedy_action(self.q_model, self.action_space, state_current, self.epsilon)
 
                 next_state, reward, done, info = env.step(action)
                 next_state = np.array([next_state])
@@ -94,7 +95,7 @@ class AgentDQN:
 
                 state_current = next_state
 
-                if steps % TARGET_UPDATE is 0:
+                if (steps % TARGET_UPDATE) == 0:
                     self.target_q_model = copy.deepcopy(self.q_model)
 
                 if done:

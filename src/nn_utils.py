@@ -20,6 +20,9 @@ class MeanMeter(object):
 
 def train(epoch, data, target, model, optimizer, criterion):
 
+    data = torch.from_numpy(data)
+    target = torch.from_numpy(target)
+
     acc = MeanMeter()
     losses = MeanMeter()
 
@@ -35,20 +38,24 @@ def train(epoch, data, target, model, optimizer, criterion):
     optimizer.step()
 
     # Calc accuracy
-    value, preds = out.max(dim=-1)
-    batch_acc = preds.eq(target).sum() / target.shape[0]
+    #value, preds = out.max(dim=-1)
+    #batch_acc = preds.eq(target).sum() / target.shape[0]
 
     # Calc means
-    losses.update(loss, out.shape[0])
-    acc.update(batch_acc, out.shape[0])
+    #losses.update(loss, out.shape[0])
+    #acc.update(batch_acc, out.shape[0])
 
-    return losses.mean.detach().cpu().numpy(), acc.mean.detach().cpu().numpy()
+    #return losses.mean.detach().cpu().numpy(), acc.mean.detach().cpu().numpy()
+    return
 
 def predict(model, data):
 
+    data = torch.from_numpy(data)
     model.eval()
     with torch.no_grad():
       out = model(data)
 
-  return out
+    out = out.cpu().detach().numpy()
+
+    return out
 
