@@ -1,37 +1,28 @@
 from dqn_agent import AgentDQN
+from fcnn import FCNN
+from nn_utils import predict
 import argparse
 import gym
+import numpy as np
 import torch
 
-def run_agent(q_model=None, weights_file=None):
+def run_agent(env, q_model):
 
     NUM_EPISODES = 100
-    ACTION_SPACE = 4
-    OBSERVATION_SPACE = 8
-
-    if weights_file is not None:
-        q_model = model_init(OBSERVATION_SPACE, ACTION_SPACE)
-        q_model.load_weights(weights_file)
-
-    env = gym.make('LunarLander-v2')
 
     for episode in range(NUM_EPISODES):
         state_current = np.array([env.reset()])
         total_episode_rewards = 0
         frames = 0
 
-
-
         while True:
             env.render()
-
             frames += 1
 
-            action = np.argmax(q_model.predict(state_current))
+            action = np.argmax(predict(q_model, state_current))
             next_state, reward, done, info = env.step(action)
             total_episode_rewards = total_episode_rewards + reward
-            next_state = np.array([next_state])
-            state_current = next_state
+            state_current = np.array([next_state])
 
             if done:
                 print (f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} EPSILON: {0} FRAMES: {frames}')
@@ -47,7 +38,7 @@ if __name__ == "__main__":
 
     if args.training in ['None', 'True']:
         env = gym.make('LunarLander-v2')
-        num_episodes = 100
+        num_episodes = 2000
 
         agent = AgentDQN(env.action_space.n, env.observation_space.shape[0])
         q_model = agent.learn(env, num_episodes)
@@ -58,4 +49,8 @@ if __name__ == "__main__":
         if args.file_path in ['None']:
             print('No file path specifed!')
             exit(0)
-
+        else:
+            env = gym.make('LunarLander-v2')
+            q_model = FCNN(env.observation_space.shape[0], env.action_space.n)
+            q_model.load_state_dict(torch.load(args.file_path))
+            run_agent(env, q_model)
