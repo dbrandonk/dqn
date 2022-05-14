@@ -26,7 +26,8 @@ class AgentDQN:
         self.q_model = FCNN(observation_space, action_space)
         self.target_q_model = copy.deepcopy(self.q_model)
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.Adam(self.q_model.parameters())
+        #self.optimizer = torch.optim.Adam(self.q_model.parameters(), lr = 0.001, weight_decay=0.001)
+        self.optimizer = torch.optim.SGD(self.q_model.parameters(), lr=0.001, momentum=0.9)
 
         self.epsilon = 0.99
         self.epsilon_reduction = 0.999
@@ -45,9 +46,9 @@ class AgentDQN:
         NEXT_STATE_INDEX = 3
 
         current_states = np.vstack(sample_batch[:, CURRENT_STATE_INDEX])
-        next_states = np.vstack(sample_batch[:, NEXT_STATE_INDEX])
         rewards = np.vstack(sample_batch[:, REWARD_INDEX])
         actions = np.vstack(sample_batch[:, ACTION_INDEX]).T[0]
+        next_states = np.vstack(sample_batch[:, NEXT_STATE_INDEX])
 
         target_predictions = predict(self.target_q_model, next_states)
         max_actions = target_predictions.max(1)
