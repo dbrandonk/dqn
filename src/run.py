@@ -1,5 +1,7 @@
-import gym
 from dqn_agent import AgentDQN
+import argparse
+import gym
+import torch
 
 def run_agent(q_model=None, weights_file=None):
 
@@ -38,24 +40,22 @@ def run_agent(q_model=None, weights_file=None):
     env.close()
 
 if __name__ == "__main__":
-    #parser = argparse.ArgumentParser()
-    #parser.add_argument("training")
-    #parser.add_argument("file_path")
-    #args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("training")
+    parser.add_argument("file_path")
+    args = parser.parse_args()
 
-    #if args.training in ['None', 'True']:
-    #    dqn_train_lunar_lander()
-    #elif args.training in ['False']:
+    if args.training in ['None', 'True']:
+        env = gym.make('LunarLander-v2')
+        num_episodes = 100
 
-    #    if args.file_path in ['None']:
-    #        print('No file path specifed!')
-    #        exit(0)
+        agent = AgentDQN(env.action_space.n, env.observation_space.shape[0])
+        q_model = agent.learn(env, num_episodes)
+        torch.save(q_model.state_dict(), '../checkpoint/q_model.pth')
 
-    #    dqn_run_lunar_lander(weights_file=args.file_path)
-    #    exit(0)
+    elif args.training in ['False']:
 
-    env = gym.make('LunarLander-v2')
-    num_episodes = 3000
+        if args.file_path in ['None']:
+            print('No file path specifed!')
+            exit(0)
 
-    agent = AgentDQN(env.action_space.n, env.observation_space.shape[0])
-    agent.learn(env, 3000)

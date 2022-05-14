@@ -2,7 +2,6 @@ from collections import deque
 from fcnn import FCNN
 from nn_utils import train
 from nn_utils import predict
-import argparse
 import copy
 import gym
 import numpy as np
