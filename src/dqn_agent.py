@@ -20,15 +20,14 @@ class AgentDQN:
         self.action_space = action_space
         self.observation_space = observation_space
 
-        PLAYBACK_MAX_CAP = 4500
+        PLAYBACK_MAX_CAP = 4096
         self.playback_buffer = deque(maxlen=PLAYBACK_MAX_CAP)
         self.q_model = FCNN(observation_space, action_space)
         self.target_q_model = copy.deepcopy(self.q_model)
-        self.criterion = torch.nn.CrossEntropyLoss()
-        #self.optimizer = torch.optim.Adam(self.q_model.parameters(), lr = 0.001, weight_decay=0.001)
-        self.optimizer = torch.optim.SGD(self.q_model.parameters(), lr=0.001, momentum=0.9)
+        self.criterion = torch.nn.MSELoss()
+        self.optimizer = torch.optim.Adam(self.q_model.parameters(), lr = 0.001, weight_decay=0.001)
 
-        self.epsilon = 0.99
+        self.epsilon = 1.0
         self.epsilon_reduction = 0.999
         self.gamma = 0.99
 
@@ -68,7 +67,7 @@ class AgentDQN:
     def learn(self, env, num_episodes):
 
         SAMPLE_BATCH_SIZE = 32
-        TARGET_UPDATE = 256
+        TARGET_UPDATE = 4096
         steps = 0
         average_episode_reward = deque(maxlen=100)
 
