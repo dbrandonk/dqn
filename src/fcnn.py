@@ -1,5 +1,6 @@
 from torch import nn
 
+
 class FCNN(nn.Module):
     def __init__(self, observation_space, action_space):
         super(FCNN, self).__init__()

@@ -43,8 +43,19 @@ def main():
         num_episodes = 3000
 
         playback_max_cap = 16384
-        agent = AgentDQN(env.action_space.n, env.observation_space.shape[0], playback_max_cap)
-        q_model = agent.learn(env, num_episodes)
+        agent = AgentDQN(
+            env.action_space.n,
+            env.observation_space.shape[0],
+            playback_max_cap)
+
+        sample_batch_size = 4096
+        target_update_num_steps = 8192
+
+        q_model = agent.learn(
+            env,
+            num_episodes,
+            sample_batch_size,
+            target_update_num_steps)
         torch.save(q_model.state_dict(), '../checkpoint/q_model.pth')
 
     elif args.training in ['False']:

@@ -11,6 +11,7 @@ CURRENT_STATE_INDEX = 0
 ACTION_INDEX = 1
 REWARD_INDEX = 2
 NEXT_STATE_INDEX = 3
+DONE_INDEX = 4
 
 
 def e_greedy_action(q_model, action_space, state_current, epsilon):
@@ -58,7 +59,6 @@ class AgentDQN:
             rewards.T, np.multiply(
                 self.gamma, max_actions))[0]
 
-        DONE_INDEX = 4
         for sample_index in range(len(sample_batch)):
             if sample_batch[sample_index][DONE_INDEX]:
                 action_values[sample_index] = sample_batch[sample_index][
@@ -74,10 +74,10 @@ class AgentDQN:
             self.optimizer,
             self.criterion)
 
-    def learn(self, env, num_episodes):
+    def learn(
+        self, env, num_episodes, sample_batch_size,
+            target_update_num_steps):
 
-        SAMPLE_BATCH_SIZE = 4096
-        TARGET_UPDATE = 8192
         steps = 0
         average_episode_reward = deque(maxlen=100)
 
@@ -103,13 +103,13 @@ class AgentDQN:
                 self.playback_buffer.append(
                     [state_current, action, reward, next_state, done])
 
-                if len(self.playback_buffer) > SAMPLE_BATCH_SIZE:
-                    sample_batch = self.get_sample_batch(SAMPLE_BATCH_SIZE)
+                if len(self.playback_buffer) > sample_batch_size:
+                    sample_batch = self.get_sample_batch(sample_batch_size)
                     self.update_network(sample_batch)
 
                 state_current = next_state
 
-                if (steps % TARGET_UPDATE) == 0:
+                if (steps % target_update_num_steps) == 0:
                     self.target_q_model = copy.deepcopy(self.q_model)
 
                 if done:

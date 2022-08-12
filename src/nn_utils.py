@@ -1,5 +1,6 @@
 import torch
 
+
 def train(data, target, model, optimizer, criterion):
 
     data = torch.from_numpy(data)
@@ -15,8 +16,6 @@ def train(data, target, model, optimizer, criterion):
     loss.backward()
     optimizer.step()
     optimizer.zero_grad()
-
-    return
 
 
 def predict(model, data):
