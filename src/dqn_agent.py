@@ -42,7 +42,7 @@ class AgentDQN:
 
     def get_sample_batch(self, sample_batch_size):
         sample_batch = random.sample(self.playback_buffer, sample_batch_size)
-        sample_batch = np.array(sample_batch)
+        sample_batch = np.array(sample_batch, dtype=object)
         return sample_batch
 
     def update_network(self, sample_batch):
@@ -79,7 +79,9 @@ class AgentDQN:
             target_update_num_steps):
 
         steps = 0
+
         average_episode_reward = deque(maxlen=100)
+        average_episode_reward.append(0)
 
         for episode in range(num_episodes):
             state_current = np.array([env.reset()])
