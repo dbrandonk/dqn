@@ -6,6 +6,7 @@ import gym
 import numpy as np
 import torch
 
+
 def run_agent(env, q_model):
 
     NUM_EPISODES = 100
@@ -25,10 +26,12 @@ def run_agent(env, q_model):
             state_current = np.array([next_state])
 
             if done:
-                print (f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} EPSILON: {0} FRAMES: {frames}')
+                print(
+                    f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} EPSILON: {0} FRAMES: {frames}')
                 break
 
     env.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -38,7 +41,7 @@ if __name__ == "__main__":
 
     if args.training in ['None', 'True']:
         env = gym.make('LunarLander-v2')
-        num_episodes = 2000
+        num_episodes = 3000
 
         agent = AgentDQN(env.action_space.n, env.observation_space.shape[0])
         q_model = agent.learn(env, num_episodes)

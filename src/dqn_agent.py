@@ -8,6 +8,7 @@ import numpy as np
 import random
 import torch
 
+
 def e_greedy_action(q_model, action_space, state_current, epsilon):
     if np.random.random() < epsilon:
         action = np.random.randint(action_space)
@@ -15,17 +16,21 @@ def e_greedy_action(q_model, action_space, state_current, epsilon):
         action = np.argmax(predict(q_model, state_current))
     return action
 
+
 class AgentDQN:
-    def __init__ (self, action_space, observation_space):
+    def __init__(self, action_space, observation_space):
         self.action_space = action_space
         self.observation_space = observation_space
 
-        PLAYBACK_MAX_CAP = 4096
+        PLAYBACK_MAX_CAP = 16384
         self.playback_buffer = deque(maxlen=PLAYBACK_MAX_CAP)
-        self.q_model = FCNN(observation_space, action_space)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.q_model = FCNN(observation_space, action_space).to(device)
         self.target_q_model = copy.deepcopy(self.q_model)
         self.criterion = torch.nn.MSELoss()
-        self.optimizer = torch.optim.Adam(self.q_model.parameters(), lr = 0.001, weight_decay=0.001)
+        self.optimizer = torch.optim.Adam(
+            self.q_model.parameters(),
+            lr=0.001, weight_decay=0.001)
 
         self.epsilon = 1.0
         self.epsilon_reduction = 0.999
@@ -51,23 +56,32 @@ class AgentDQN:
         target_predictions = predict(self.target_q_model, next_states)
         max_actions = target_predictions.max(1)
 
-        action_values = np.add(rewards.T, np.multiply(self.gamma, max_actions))[0]
+        action_values = np.add(
+            rewards.T, np.multiply(
+                self.gamma, max_actions))[0]
 
         DONE_INDEX = 4
         for sample_index in range(len(sample_batch)):
             if sample_batch[sample_index][DONE_INDEX]:
-                action_values[sample_index] = sample_batch[sample_index][REWARD_INDEX]
+                action_values[sample_index] = sample_batch[sample_index][
+                    REWARD_INDEX]
 
         model_predictons = predict(self.q_model, current_states)
         model_predictons[range(len(sample_batch)), actions] = action_values
 
         NUM_EPOCHS = 1
-        train(NUM_EPOCHS, current_states, model_predictons, self.q_model, self.optimizer, self.criterion)
+        train(
+            NUM_EPOCHS,
+            current_states,
+            model_predictons,
+            self.q_model,
+            self.optimizer,
+            self.criterion)
 
     def learn(self, env, num_episodes):
 
-        SAMPLE_BATCH_SIZE = 32
-        TARGET_UPDATE = 4096
+        SAMPLE_BATCH_SIZE = 4096
+        TARGET_UPDATE = 8192
         steps = 0
         average_episode_reward = deque(maxlen=100)
 
@@ -80,13 +94,18 @@ class AgentDQN:
                 steps += 1
                 frames += 1
 
-                action = e_greedy_action(self.q_model, self.action_space, state_current, self.epsilon)
+                action = e_greedy_action(
+                    self.q_model,
+                    self.action_space,
+                    state_current,
+                    self.epsilon)
 
                 next_state, reward, done, info = env.step(action)
                 next_state = np.array([next_state])
                 total_episode_rewards = total_episode_rewards + reward
 
-                self.playback_buffer.append([state_current, action, reward, next_state, done])
+                self.playback_buffer.append(
+                    [state_current, action, reward, next_state, done])
 
                 if len(self.playback_buffer) > SAMPLE_BATCH_SIZE:
                     sample_batch = self.get_sample_batch(SAMPLE_BATCH_SIZE)
@@ -101,10 +120,13 @@ class AgentDQN:
                     average_episode_reward.append(total_episode_rewards)
 
                     if (self.epsilon > 0.1):
-                        self.epsilon = self.epsilon*self.epsilon_reduction
+                        self.epsilon = self.epsilon * self.epsilon_reduction
 
-                    print (f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} AVERAGE REWARD: {np.average(average_episode_reward)} EPSILON: {self.epsilon} FRAMES: {frames}')
+                    print(
+                        f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} AVERAGE REWARD: {np.average(average_episode_reward)} EPSILON: {self.epsilon} FRAMES: {frames}')
                     break
 
-        return self.q_model
+                if (np.average(average_episode_reward)) >= 200:
+                    return self.q_model
 
+        return self.q_model
