@@ -1,32 +1,9 @@
-import time
 import torch
 
-
-class MeanMeter(object):
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.mean = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.mean = self.sum / self.count
-
-
-def train(epoch, data, target, model, optimizer, criterion):
+def train(data, target, model, optimizer, criterion):
 
     data = torch.from_numpy(data)
     target = torch.from_numpy(target)
-
-    acc = MeanMeter()
-    losses = MeanMeter()
 
     if torch.cuda.is_available():
         data = data.cuda()

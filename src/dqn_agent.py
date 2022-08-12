@@ -1,12 +1,16 @@
+import copy
 from collections import deque
+import random
+import numpy as np
+import torch
 from fcnn import FCNN
 from nn_utils import train
 from nn_utils import predict
-import copy
-import gym
-import numpy as np
-import random
-import torch
+
+CURRENT_STATE_INDEX = 0
+ACTION_INDEX = 1
+REWARD_INDEX = 2
+NEXT_STATE_INDEX = 3
 
 
 def e_greedy_action(q_model, action_space, state_current, epsilon):
@@ -18,12 +22,11 @@ def e_greedy_action(q_model, action_space, state_current, epsilon):
 
 
 class AgentDQN:
-    def __init__(self, action_space, observation_space):
+    def __init__(self, action_space, observation_space, playback_size):
         self.action_space = action_space
         self.observation_space = observation_space
 
-        PLAYBACK_MAX_CAP = 16384
-        self.playback_buffer = deque(maxlen=PLAYBACK_MAX_CAP)
+        self.playback_buffer = deque(maxlen=playback_size)
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.q_model = FCNN(observation_space, action_space).to(device)
         self.target_q_model = copy.deepcopy(self.q_model)
@@ -42,11 +45,6 @@ class AgentDQN:
         return sample_batch
 
     def update_network(self, sample_batch):
-
-        CURRENT_STATE_INDEX = 0
-        ACTION_INDEX = 1
-        REWARD_INDEX = 2
-        NEXT_STATE_INDEX = 3
 
         current_states = np.vstack(sample_batch[:, CURRENT_STATE_INDEX])
         rewards = np.vstack(sample_batch[:, REWARD_INDEX])
@@ -69,9 +67,7 @@ class AgentDQN:
         model_predictons = predict(self.q_model, current_states)
         model_predictons[range(len(sample_batch)), actions] = action_values
 
-        NUM_EPOCHS = 1
         train(
-            NUM_EPOCHS,
             current_states,
             model_predictons,
             self.q_model,
@@ -100,7 +96,7 @@ class AgentDQN:
                     state_current,
                     self.epsilon)
 
-                next_state, reward, done, info = env.step(action)
+                next_state, reward, done, _ = env.step(action)
                 next_state = np.array([next_state])
                 total_episode_rewards = total_episode_rewards + reward
 
@@ -119,11 +115,13 @@ class AgentDQN:
                 if done:
                     average_episode_reward.append(total_episode_rewards)
 
-                    if (self.epsilon > 0.1):
+                    if self.epsilon > 0.1:
                         self.epsilon = self.epsilon * self.epsilon_reduction
 
                     print(
-                        f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} AVERAGE REWARD: {np.average(average_episode_reward)} EPSILON: {self.epsilon} FRAMES: {frames}')
+                        f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} \
+                                AVERAGE REWARD: {np.average(average_episode_reward)} \
+                                EPSILON: {self.epsilon} FRAMES: {frames}')
                     break
 
                 if (np.average(average_episode_reward)) >= 200:

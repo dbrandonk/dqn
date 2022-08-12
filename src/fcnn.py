@@ -1,6 +1,4 @@
-import torch
-import torch.nn as nn
-
+from torch import nn
 
 class FCNN(nn.Module):
     def __init__(self, observation_space, action_space):
@@ -10,8 +8,8 @@ class FCNN(nn.Module):
         self.fc2 = nn.Linear(70, 70)
         self.fc3 = nn.Linear(70, action_space)
 
-    def forward(self, x):
-        outs = nn.functional.relu(self.fc1(x))
+    def forward(self, data):
+        outs = nn.functional.relu(self.fc1(data))
         outs = nn.functional.relu(self.fc2(outs))
         outs = self.fc3(outs)
         return outs
