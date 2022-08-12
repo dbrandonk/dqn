@@ -21,9 +21,10 @@ def train(data, target, model, optimizer, criterion):
 def predict(model, data):
 
     data = torch.from_numpy(data)
+
     if torch.cuda.is_available():
-        model = model.cuda()
         data = data.cuda()
+
     model.eval()
     with torch.no_grad():
         out = model(data)

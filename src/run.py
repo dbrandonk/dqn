@@ -34,31 +34,35 @@ def run_agent(env, q_model, num_episodes):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("training")
-    parser.add_argument("file_path")
+    parser.add_argument('--train', default=True)
+    parser.add_argument('--num_episodes', default=1, type=int)
+    parser.add_argument('--playback_buffer_size', default=1, type=int)
+    parser.add_argument('--playback_sample_size', default=1, type=int)
+    parser.add_argument('--target_network_update_rate', default=1, type=int)
+    parser.add_argument('--file_path', default='None')
+
     args = parser.parse_args()
 
-    if args.training in ['None', 'True']:
+    if args.train:
         env = gym.make('LunarLander-v2')
-        num_episodes = 3000
 
         playback_max_cap = 16384
         agent = AgentDQN(
             env.action_space.n,
             env.observation_space.shape[0],
-            playback_max_cap)
+            args.playback_buffer_size)
 
-        sample_batch_size = 4096
         target_update_num_steps = 8192
 
         q_model = agent.learn(
             env,
-            num_episodes,
-            sample_batch_size,
-            target_update_num_steps)
+            args.num_episodes,
+            args.playback_sample_size,
+            args.target_network_update_rate)
+
         torch.save(q_model.state_dict(), '../checkpoint/q_model.pth')
 
-    elif args.training in ['False']:
+    else:
 
         if args.file_path in ['None']:
             print('No file path specifed!')
@@ -66,8 +70,7 @@ def main():
             env = gym.make('LunarLander-v2')
             q_model = FCNN(env.observation_space.shape[0], env.action_space.n)
             q_model.load_state_dict(torch.load(args.file_path))
-            num_episodes = 100
-            run_agent(env, q_model, num_episodes)
+            run_agent(env, q_model, args.num_episodes)
 
 
 if __name__ == "__main__":
