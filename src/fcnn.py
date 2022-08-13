@@ -10,7 +10,8 @@ class FCNN(nn.Module):
         self.fc3 = nn.Linear(70, action_space)
 
     def forward(self, data):
-        outs = nn.functional.relu(self.fc1(data))
+        outs = nn.functional.normalize(data)
+        outs = nn.functional.relu(self.fc1(outs))
         outs = nn.functional.relu(self.fc2(outs))
         outs = self.fc3(outs)
         return outs

@@ -1,14 +1,17 @@
 import torch
+import numpy as np
 
 
-def train(data, target, model, optimizer, criterion):
+def train(data, target, model, optimizer, criterion, device):
 
-    data = torch.from_numpy(data)
-    target = torch.from_numpy(target)
+    if type(data) == np.ndarray:
+        data = torch.from_numpy(data)
 
-    if torch.cuda.is_available():
-        data = data.cuda()
-        target = target.cuda()
+    if type(target) == np.ndarray:
+        target = torch.from_numpy(target)
+
+    data = data.to(device)
+    target = target.to(device)
 
     model.train()
     out = model(data)
@@ -18,12 +21,12 @@ def train(data, target, model, optimizer, criterion):
     optimizer.zero_grad()
 
 
-def predict(model, data):
+def predict(model, data, device):
 
-    data = torch.from_numpy(data)
+    if type(data) == np.ndarray:
+        data = torch.from_numpy(data)
 
-    if torch.cuda.is_available():
-        data = data.cuda()
+    data = data.to(device)
 
     model.eval()
     with torch.no_grad():

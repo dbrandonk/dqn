@@ -6,6 +6,7 @@ import torch
 from fcnn import FCNN
 from nn_utils import train
 from nn_utils import predict
+from torch.utils.tensorboard import SummaryWriter
 
 CURRENT_STATE_INDEX = 0
 ACTION_INDEX = 1
@@ -13,12 +14,13 @@ REWARD_INDEX = 2
 NEXT_STATE_INDEX = 3
 DONE_INDEX = 4
 
+writer = SummaryWriter('runs/dqn_1')
 
-def e_greedy_action(q_model, action_space, state_current, epsilon):
+def e_greedy_action(q_model, action_space, state_current, epsilon, device):
     if np.random.random() < epsilon:
         action = np.random.randint(action_space)
     else:
-        action = np.argmax(predict(q_model, state_current))
+        action = np.argmax(predict(q_model, state_current, device))
     return action
 
 
@@ -28,9 +30,10 @@ class AgentDQN:
         self.observation_space = observation_space
 
         self.playback_buffer = deque(maxlen=playback_size)
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.q_model = FCNN(observation_space, action_space).to(device)
-        self.target_q_model = copy.deepcopy(self.q_model)
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.q_model = FCNN(observation_space, action_space).to(self.device)
+        self.target_q_model = FCNN(observation_space, action_space).to(self.device)
+        self.target_q_model.load_state_dict(self.q_model.state_dict())
         self.criterion = torch.nn.MSELoss()
         self.optimizer = torch.optim.Adam(
             self.q_model.parameters(),
@@ -52,7 +55,7 @@ class AgentDQN:
         actions = np.vstack(sample_batch[:, ACTION_INDEX]).T[0]
         next_states = np.vstack(sample_batch[:, NEXT_STATE_INDEX])
 
-        target_predictions = predict(self.target_q_model, next_states)
+        target_predictions = predict(self.target_q_model, next_states, self.device)
         max_actions = target_predictions.max(1)
 
         action_values = np.add(
@@ -64,7 +67,7 @@ class AgentDQN:
                 action_values[sample_index] = sample_batch[sample_index][
                     REWARD_INDEX]
 
-        model_predictons = predict(self.q_model, current_states)
+        model_predictons = predict(self.q_model, current_states, self.device)
         model_predictons[range(len(sample_batch)), actions] = action_values
 
         train(
@@ -72,7 +75,8 @@ class AgentDQN:
             model_predictons,
             self.q_model,
             self.optimizer,
-            self.criterion)
+            self.criterion,
+            self.device)
 
     def learn(
         self, env, num_episodes, sample_batch_size,
@@ -81,11 +85,10 @@ class AgentDQN:
         steps = 0
 
         average_episode_reward = deque(maxlen=100)
-        average_episode_reward.append(0)
 
         for episode in range(num_episodes):
             state_current = np.array([env.reset()])
-            total_episode_rewards = 0
+            total_episode_rewards = 0.0
             frames = 0
 
             while True:
@@ -96,11 +99,12 @@ class AgentDQN:
                     self.q_model,
                     self.action_space,
                     state_current,
-                    self.epsilon)
+                    self.epsilon,
+                    self.device)
 
                 next_state, reward, done, _ = env.step(action)
                 next_state = np.array([next_state])
-                total_episode_rewards = total_episode_rewards + reward
+                total_episode_rewards += reward
 
                 self.playback_buffer.append(
                     [state_current, action, reward, next_state, done])
@@ -112,7 +116,7 @@ class AgentDQN:
                 state_current = next_state
 
                 if (steps % target_update_num_steps) == 0:
-                    self.target_q_model = copy.deepcopy(self.q_model)
+                    self.target_q_model.load_state_dict(self.q_model.state_dict())
 
                 if done:
                     average_episode_reward.append(total_episode_rewards)
@@ -124,9 +128,12 @@ class AgentDQN:
                         f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} \
                                 AVERAGE REWARD: {np.average(average_episode_reward)} \
                                 EPSILON: {self.epsilon} FRAMES: {frames}')
+
+                    writer.add_scalar('avg_reward', np.average(average_episode_reward), episode)
+
                     break
 
-                if (np.average(average_episode_reward)) >= 200:
+                if ((len(average_episode_reward) > 0) and (np.average(average_episode_reward) >= 200)):
                     return self.q_model
 
         return self.q_model
