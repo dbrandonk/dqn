@@ -46,13 +46,10 @@ def main():
     if args.train:
         env = gym.make('LunarLander-v2')
 
-        playback_max_cap = 16384
         agent = AgentDQN(
             env.action_space.n,
             env.observation_space.shape[0],
             args.playback_buffer_size)
-
-        target_update_num_steps = 8192
 
         q_model = agent.learn(
             env,
