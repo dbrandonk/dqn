@@ -1,3 +1,4 @@
+from functools import partial
 import argparse
 import gym
 import numpy as np
@@ -5,7 +6,9 @@ import torch
 from dqn_agent import AgentDQN
 from fcnn import FCNN
 from nn_utils import predict
-
+from ray import tune
+from ray.tune import CLIReporter
+from ray.tune.schedulers import ASHAScheduler
 
 def run_agent(env, q_model, num_episodes):
 
@@ -32,8 +35,28 @@ def run_agent(env, q_model, num_episodes):
     env.close()
 
 
+def train_dqn(config):
+
+    env = config['env']
+    playback_buffer_size = config['playback_buffer_size']
+    num_episodes = config['num_episodes']
+    playback_sample_size = config['playback_sample_size']
+    target_network_update_rate = config['target_network_update_rate']
+
+    agent = AgentDQN(
+        env.action_space.n,
+        env.observation_space.shape[0],
+        playback_buffer_size,
+        num_episodes,
+        playback_sample_size,
+        target_network_update_rate)
+
+    q_model = agent.learn(env)
+    return q_model
+
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--param_search', default=True)
     parser.add_argument('--train', default=True)
     parser.add_argument('--num_episodes', default=1, type=int)
     parser.add_argument('--playback_buffer_size', default=1, type=int)
@@ -43,20 +66,48 @@ def main():
 
     args = parser.parse_args()
 
-    if args.train:
+    if args.param_search:
+
         env = gym.make('LunarLander-v2')
 
-        agent = AgentDQN(
-            env.action_space.n,
-            env.observation_space.shape[0],
-            args.playback_buffer_size)
+        config = {
+            "env": env,
+            "playback_buffer_size": 4096,
+            "num_episodes": 100,
+            "playback_sample_size": 256,
+            "target_network_update_rate": 1024
+        }
 
-        q_model = agent.learn(
-            env,
-            args.num_episodes,
-            args.playback_sample_size,
-            args.target_network_update_rate)
+        scheduler = ASHAScheduler(
+            metric="reward",
+            mode="max",
+            max_t=100,
+            grace_period=1,
+            reduction_factor=2)
 
+        reporter = CLIReporter(
+            metric_columns=["reward", "training_iteration"])
+
+        result = tune.run(
+            partial(train_dqn),
+            resources_per_trial={"cpu": 1},
+            config=config,
+            num_samples=10,
+            scheduler=scheduler,
+            progress_reporter=reporter)
+
+    elif args.train:
+        env = gym.make('LunarLander-v2')
+
+        config = {
+            "env": env,
+            "playback_buffer_size": 4096,
+            "num_episodes": 1000,
+            "playback_sample_size": 256,
+            "target_network_update_rate": 1024
+        }
+
+        q_model = train_dqn(config)
         torch.save(q_model.state_dict(), '../checkpoint/q_model.pth')
 
     else:

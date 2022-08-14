@@ -7,6 +7,7 @@ from fcnn import FCNN
 from nn_utils import train
 from nn_utils import predict
 from torch.utils.tensorboard import SummaryWriter
+from ray import tune
 
 CURRENT_STATE_INDEX = 0
 ACTION_INDEX = 1
@@ -25,11 +26,14 @@ def e_greedy_action(q_model, action_space, state_current, epsilon, device):
 
 
 class AgentDQN:
-    def __init__(self, action_space, observation_space, playback_size):
+    def __init__(self, action_space, observation_space, playback_size, num_episodes, sample_batch_size, target_update_num_steps):
         self.action_space = action_space
         self.observation_space = observation_space
 
         self.playback_buffer = deque(maxlen=playback_size)
+        self.num_episodes = num_episodes
+        self.sample_batch_size = sample_batch_size
+        self.target_update_num_steps = target_update_num_steps
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.q_model = FCNN(observation_space, action_space).to(self.device)
         self.target_q_model = FCNN(observation_space, action_space).to(self.device)
@@ -43,8 +47,8 @@ class AgentDQN:
         self.epsilon_reduction = 0.999
         self.gamma = 0.99
 
-    def get_sample_batch(self, sample_batch_size):
-        sample_batch = random.sample(self.playback_buffer, sample_batch_size)
+    def get_sample_batch(self):
+        sample_batch = random.sample(self.playback_buffer, self.sample_batch_size)
         sample_batch = np.array(sample_batch, dtype=object)
         return sample_batch
 
@@ -78,15 +82,13 @@ class AgentDQN:
             self.criterion,
             self.device)
 
-    def learn(
-        self, env, num_episodes, sample_batch_size,
-            target_update_num_steps):
+    def learn(self, env):
 
         steps = 0
 
         average_episode_reward = deque(maxlen=100)
 
-        for episode in range(num_episodes):
+        for episode in range(self.num_episodes):
             state_current = np.array([env.reset()])
             total_episode_rewards = 0.0
             frames = 0
@@ -109,13 +111,13 @@ class AgentDQN:
                 self.playback_buffer.append(
                     [state_current, action, reward, next_state, done])
 
-                if len(self.playback_buffer) > sample_batch_size:
-                    sample_batch = self.get_sample_batch(sample_batch_size)
+                if len(self.playback_buffer) > self.sample_batch_size:
+                    sample_batch = self.get_sample_batch()
                     self.update_network(sample_batch)
 
                 state_current = next_state
 
-                if (steps % target_update_num_steps) == 0:
+                if (steps % self.target_update_num_steps) == 0:
                     self.target_q_model.load_state_dict(self.q_model.state_dict())
 
                 if done:
@@ -130,6 +132,7 @@ class AgentDQN:
                                 EPSILON: {self.epsilon} FRAMES: {frames}')
 
                     writer.add_scalar('avg_reward', np.average(average_episode_reward), episode)
+                    tune.report(reward=np.average(average_episode_reward))
 
                     break
 
