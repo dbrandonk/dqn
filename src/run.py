@@ -80,10 +80,10 @@ def main():
 
         config = {
             "env": env,
-            "playback_buffer_size": 4096,
-            "num_episodes": 100,
-            "playback_sample_size": tune.choice([128, 256]),
-            "target_network_update_rate": 1024
+            "playback_buffer_size": tune.choice([2048, 4096, 8192, 16384, 32768]),
+            "num_episodes": 3000,
+            "playback_sample_size": tune.choice([32, 64, 128, 256, 512]),
+            "target_network_update_rate": tune.choice([1024, 2048, 4096, 8192, 16384])
         }
 
         scheduler = ASHAScheduler( metric="reward", mode="max", max_t=20)
@@ -96,8 +96,8 @@ def main():
             name = 'dqn-tune',
             local_dir = 'runs',
             config=config,
-            num_samples=2,
-            stop={"training_iteration": 10},
+            num_samples=15,
+            stop={"training_iteration": 2000},
             #scheduler=scheduler,
             progress_reporter=reporter)
 

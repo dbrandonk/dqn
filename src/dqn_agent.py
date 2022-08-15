@@ -118,17 +118,14 @@ class AgentDQN:
                     if self.epsilon > 0.1:
                         self.epsilon = self.epsilon * self.epsilon_reduction
 
-                    print(
-                        f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} \
-                                AVERAGE REWARD: {np.average(average_episode_reward)} \
-                                EPSILON: {self.epsilon} FRAMES: {frames}')
+                    #print(
+                        #f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} \
+                                #AVERAGE REWARD: {np.average(average_episode_reward)} \
+                                #EPSILON: {self.epsilon} FRAMES: {frames}')
 
                     #self.writer.add_scalar('avg_reward', np.average(average_episode_reward), episode)
                     tune.report(reward=np.average(average_episode_reward))
 
                     break
-
-                if ((len(average_episode_reward) > 0) and (np.average(average_episode_reward) >= 200)):
-                    return self.q_model
 
         return self.q_model
