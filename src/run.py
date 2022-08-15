@@ -9,6 +9,9 @@ from nn_utils import predict
 from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler
+from torch.utils.tensorboard import SummaryWriter
+
+writer = SummaryWriter('runs/dqn')
 
 def run_agent(env, q_model, num_episodes):
 
@@ -49,7 +52,8 @@ def train_dqn(config):
         playback_buffer_size,
         num_episodes,
         playback_sample_size,
-        target_network_update_rate)
+        target_network_update_rate,
+        writer)
 
     q_model = agent.learn(env)
     return q_model
@@ -66,7 +70,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.param_search:
+    if False:
 
         env = gym.make('LunarLander-v2')
 
@@ -101,10 +105,10 @@ def main():
 
         config = {
             "env": env,
-            "playback_buffer_size": 4096,
-            "num_episodes": 1000,
-            "playback_sample_size": 256,
-            "target_network_update_rate": 1024
+            "playback_buffer_size": 8192,
+            "num_episodes": 3000,
+            "playback_sample_size": 64,
+            "target_network_update_rate": 2048
         }
 
         q_model = train_dqn(config)

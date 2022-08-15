@@ -6,7 +6,6 @@ import torch
 from fcnn import FCNN
 from nn_utils import train
 from nn_utils import predict
-from torch.utils.tensorboard import SummaryWriter
 from ray import tune
 
 CURRENT_STATE_INDEX = 0
@@ -15,18 +14,8 @@ REWARD_INDEX = 2
 NEXT_STATE_INDEX = 3
 DONE_INDEX = 4
 
-writer = SummaryWriter('runs/dqn_1')
-
-def e_greedy_action(q_model, action_space, state_current, epsilon, device):
-    if np.random.random() < epsilon:
-        action = np.random.randint(action_space)
-    else:
-        action = np.argmax(predict(q_model, state_current, device))
-    return action
-
-
 class AgentDQN:
-    def __init__(self, action_space, observation_space, playback_size, num_episodes, sample_batch_size, target_update_num_steps):
+    def __init__(self, action_space, observation_space, playback_size, num_episodes, sample_batch_size, target_update_num_steps, writer):
         self.action_space = action_space
         self.observation_space = observation_space
 
@@ -34,6 +23,7 @@ class AgentDQN:
         self.num_episodes = num_episodes
         self.sample_batch_size = sample_batch_size
         self.target_update_num_steps = target_update_num_steps
+        self.writer = writer
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.q_model = FCNN(observation_space, action_space).to(self.device)
         self.target_q_model = FCNN(observation_space, action_space).to(self.device)
@@ -41,11 +31,18 @@ class AgentDQN:
         self.criterion = torch.nn.MSELoss()
         self.optimizer = torch.optim.Adam(
             self.q_model.parameters(),
-            lr=0.001, weight_decay=0.001)
+            lr=0.0001)
 
         self.epsilon = 1.0
         self.epsilon_reduction = 0.999
         self.gamma = 0.99
+
+    def e_greedy_action(self, state):
+        if np.random.random() < self.epsilon:
+            action = np.random.randint(self.action_space)
+        else:
+            action = np.argmax(predict(self.q_model, state, self.device))
+        return action
 
     def get_sample_batch(self):
         sample_batch = random.sample(self.playback_buffer, self.sample_batch_size)
@@ -97,12 +94,7 @@ class AgentDQN:
                 steps += 1
                 frames += 1
 
-                action = e_greedy_action(
-                    self.q_model,
-                    self.action_space,
-                    state_current,
-                    self.epsilon,
-                    self.device)
+                action = self.e_greedy_action(state_current)
 
                 next_state, reward, done, _ = env.step(action)
                 next_state = np.array([next_state])
@@ -131,7 +123,7 @@ class AgentDQN:
                                 AVERAGE REWARD: {np.average(average_episode_reward)} \
                                 EPSILON: {self.epsilon} FRAMES: {frames}')
 
-                    writer.add_scalar('avg_reward', np.average(average_episode_reward), episode)
+                    self.writer.add_scalar('avg_reward', np.average(average_episode_reward), episode)
                     tune.report(reward=np.average(average_episode_reward))
 
                     break
