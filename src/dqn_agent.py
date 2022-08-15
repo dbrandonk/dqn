@@ -123,7 +123,7 @@ class AgentDQN:
                                 AVERAGE REWARD: {np.average(average_episode_reward)} \
                                 EPSILON: {self.epsilon} FRAMES: {frames}')
 
-                    self.writer.add_scalar('avg_reward', np.average(average_episode_reward), episode)
+                    #self.writer.add_scalar('avg_reward', np.average(average_episode_reward), episode)
                     tune.report(reward=np.average(average_episode_reward))
 
                     break

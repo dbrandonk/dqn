@@ -11,8 +11,6 @@ from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler
 from torch.utils.tensorboard import SummaryWriter
 
-writer = SummaryWriter('runs/dqn')
-
 def run_agent(env, q_model, num_episodes):
 
     for episode in range(num_episodes):
@@ -45,6 +43,12 @@ def train_dqn(config):
     num_episodes = config['num_episodes']
     playback_sample_size = config['playback_sample_size']
     target_network_update_rate = config['target_network_update_rate']
+    writer = None
+
+    #writer = SummaryWriter('runs/dqn-playback_buff_sz-{}\
+            #-playback_sample_size-{}\
+            #-target_network_update-{}'.format(playback_buffer_size, playback_sample_size, target_network_update_rate)
+            #flush_secs = 1)
 
     agent = AgentDQN(
         env.action_space.n,
@@ -70,7 +74,7 @@ def main():
 
     args = parser.parse_args()
 
-    if False:
+    if args.param_search:
 
         env = gym.make('LunarLander-v2')
 
@@ -78,26 +82,23 @@ def main():
             "env": env,
             "playback_buffer_size": 4096,
             "num_episodes": 100,
-            "playback_sample_size": 256,
+            "playback_sample_size": tune.choice([128, 256]),
             "target_network_update_rate": 1024
         }
 
-        scheduler = ASHAScheduler(
-            metric="reward",
-            mode="max",
-            max_t=100,
-            grace_period=1,
-            reduction_factor=2)
+        scheduler = ASHAScheduler( metric="reward", mode="max", max_t=20)
 
         reporter = CLIReporter(
             metric_columns=["reward", "training_iteration"])
 
         result = tune.run(
-            partial(train_dqn),
-            resources_per_trial={"cpu": 1},
+            train_dqn,
+            name = 'dqn-tune',
+            local_dir = 'runs',
             config=config,
-            num_samples=10,
-            scheduler=scheduler,
+            num_samples=2,
+            stop={"training_iteration": 10},
+            #scheduler=scheduler,
             progress_reporter=reporter)
 
     elif args.train:
