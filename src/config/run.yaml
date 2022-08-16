@@ -1,0 +1,6 @@
+env: 'LunarLander-v2'
+playback_buffer_size: 32768
+playback_sample_size: 512
+target_network_update_rate: 8192
+num_episodes: 2000
+model_path: 'models'

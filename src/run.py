@@ -22,7 +22,7 @@ def run_agent(env, q_model, num_episodes):
             env.render()
             frames += 1
 
-            action = np.argmax(predict(q_model, state_current))
+            action = np.argmax(predict(q_model, state_current, 'cpu'))
             next_state, reward, done, _ = env.step(action)
             total_episode_rewards = total_episode_rewards + reward
             state_current = np.array([next_state])
@@ -105,13 +105,10 @@ def main():
 
     elif args.run != 'None':
 
-        if args.file_path in ['None']:
-            print('No file path specifed!')
-        else:
-            env = gym.make('LunarLander-v2')
-            q_model = FCNN(env.observation_space.shape[0], env.action_space.n)
-            q_model.load_state_dict(torch.load(args.file_path))
-            run_agent(env, q_model, args.num_episodes)
+        env = gym.make('LunarLander-v2')
+        q_model = FCNN(env.observation_space.shape[0], env.action_space.n)
+        q_model.load_state_dict(torch.load(args.run))
+        run_agent(env, q_model, 100)
 
 
 if __name__ == "__main__":
