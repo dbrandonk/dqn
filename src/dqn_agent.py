@@ -15,7 +15,7 @@ NEXT_STATE_INDEX = 3
 DONE_INDEX = 4
 
 class AgentDQN:
-    def __init__(self, action_space, observation_space, playback_size, num_episodes, sample_batch_size, target_update_num_steps, writer):
+    def __init__(self, action_space, observation_space, playback_size, num_episodes, sample_batch_size, target_update_num_steps, writer, model_dir):
         self.action_space = action_space
         self.observation_space = observation_space
 
@@ -24,6 +24,7 @@ class AgentDQN:
         self.sample_batch_size = sample_batch_size
         self.target_update_num_steps = target_update_num_steps
         self.writer = writer
+        self.model_dir = model_dir
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.q_model = FCNN(observation_space, action_space).to(self.device)
         self.target_q_model = FCNN(observation_space, action_space).to(self.device)
@@ -84,6 +85,7 @@ class AgentDQN:
         steps = 0
 
         average_episode_reward = deque(maxlen=100)
+        top_avg_reward = 0
 
         for episode in range(self.num_episodes):
             state_current = np.array([env.reset()])
@@ -118,14 +120,19 @@ class AgentDQN:
                     if self.epsilon > 0.1:
                         self.epsilon = self.epsilon * self.epsilon_reduction
 
-                    #print(
-                        #f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} \
-                                #AVERAGE REWARD: {np.average(average_episode_reward)} \
-                                #EPSILON: {self.epsilon} FRAMES: {frames}')
 
-                    #self.writer.add_scalar('avg_reward', np.average(average_episode_reward), episode)
-                    tune.report(reward=np.average(average_episode_reward))
+                    avg_reward = np.average(average_episode_reward)
+
+                    if ((len(average_episode_reward) == 1) or (avg_reward > top_avg_reward)):
+                        top_avg_reward = avg_reward
+                        torch.save(self.q_model.state_dict(), './{}/q_model.pth'.format(self.model_dir))
+
+                    try:
+                        self.writer.add_scalar('avg_reward', avg_reward, episode)
+                    except:
+                        pass
+
+                    tune.report(reward=avg_reward)
 
                     break
 
-        return self.q_model

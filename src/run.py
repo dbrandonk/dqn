@@ -8,8 +8,8 @@ from fcnn import FCNN
 from nn_utils import predict
 from ray import tune
 from ray.tune import CLIReporter
-from ray.tune.schedulers import ASHAScheduler
 from torch.utils.tensorboard import SummaryWriter
+import yaml
 
 def run_agent(env, q_model, num_episodes):
 
@@ -38,17 +38,21 @@ def run_agent(env, q_model, num_episodes):
 
 def train_dqn(config):
 
-    env = config['env']
+    env_name = config['env']
     playback_buffer_size = config['playback_buffer_size']
     num_episodes = config['num_episodes']
     playback_sample_size = config['playback_sample_size']
     target_network_update_rate = config['target_network_update_rate']
-    writer = None
 
-    #writer = SummaryWriter('runs/dqn-playback_buff_sz-{}\
-            #-playback_sample_size-{}\
-            #-target_network_update-{}'.format(playback_buffer_size, playback_sample_size, target_network_update_rate)
-            #flush_secs = 1)
+    env = gym.make(config['env'])
+
+    if config['data_dir'] != 'None':
+        writer = SummaryWriter('./{}/dqn-playback_buff_sz-{}\
+                -playback_sample_size-{}\
+                -target_network_update-{}'.format(config['data_dir'], playback_buffer_size, playback_sample_size, target_network_update_rate),
+                flush_secs = 1)
+    else:
+        writer = None
 
     agent = AgentDQN(
         env.action_space.n,
@@ -57,26 +61,21 @@ def train_dqn(config):
         num_episodes,
         playback_sample_size,
         target_network_update_rate,
-        writer)
+        writer,
+        config['model_dir']
+        )
 
-    q_model = agent.learn(env)
-    return q_model
+    agent.learn(env)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--param_search', default=True)
-    parser.add_argument('--train', default=True)
-    parser.add_argument('--num_episodes', default=1, type=int)
-    parser.add_argument('--playback_buffer_size', default=1, type=int)
-    parser.add_argument('--playback_sample_size', default=1, type=int)
-    parser.add_argument('--target_network_update_rate', default=1, type=int)
-    parser.add_argument('--file_path', default='None')
-
+    parser.add_argument('--param_search', default='None', type=str)
+    parser.add_argument('--train', default='None', type=str)
+    parser.add_argument('--run', default='None', type=str)
     args = parser.parse_args()
 
-    if args.param_search:
+    if False:
 
-        env = gym.make('LunarLander-v2')
 
         config = {
             "env": env,
@@ -86,36 +85,25 @@ def main():
             "target_network_update_rate": tune.choice([1024, 2048, 4096, 8192, 16384])
         }
 
-        scheduler = ASHAScheduler( metric="reward", mode="max", max_t=20)
-
-        reporter = CLIReporter(
-            metric_columns=["reward", "training_iteration"])
+        reporter = CLIReporter( metric_columns=["reward", "training_iteration"])
 
         result = tune.run(
             train_dqn,
             name = 'dqn-tune',
             local_dir = 'runs',
             config=config,
-            num_samples=15,
+            num_samples=16,
             stop={"training_iteration": 2000},
-            #scheduler=scheduler,
             progress_reporter=reporter)
 
-    elif args.train:
-        env = gym.make('LunarLander-v2')
+    elif args.train != 'None':
 
-        config = {
-            "env": env,
-            "playback_buffer_size": 8192,
-            "num_episodes": 3000,
-            "playback_sample_size": 64,
-            "target_network_update_rate": 2048
-        }
+        with open(args.train, 'r') as yaml_file:
+            config = yaml.safe_load(yaml_file)
 
-        q_model = train_dqn(config)
-        torch.save(q_model.state_dict(), '../checkpoint/q_model.pth')
+        train_dqn(config)
 
-    else:
+    elif args.run != 'None':
 
         if args.file_path in ['None']:
             print('No file path specifed!')
