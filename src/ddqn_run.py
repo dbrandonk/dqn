@@ -47,15 +47,9 @@ def train_dqn(config):
 
     env = gym.make(config['env'])
 
-    if config['data_dir'] != 'None':
-        writer = SummaryWriter(
-                './{}/dqn-playback_buff_sz-{}-playback_sample_size-{}-target_network_update-{}'\
-                .format(config['data_dir'],
-                        playback_buffer_size,
-                        playback_sample_size,
-                        target_network_update_rate),
-                        flush_secs=1)
-    else:
+    try:
+        writer = config['writer']
+    except:
         writer = None
 
     agent = AgentDQN(
@@ -72,6 +66,7 @@ def train_dqn(config):
 
 
 def main():
+
     parser = argparse.ArgumentParser()
 
     mx_group = parser.add_mutually_exclusive_group()
@@ -81,6 +76,7 @@ def main():
 
     parser.add_argument('--env', required=True, type=str)
     parser.add_argument('--num_episodes', required=True, type=int)
+
     args = parser.parse_args()
 
     if args.tune != 'None':
@@ -88,27 +84,35 @@ def main():
         with open(args.tune, 'r') as yaml_file:
             config = yaml.safe_load(yaml_file)
 
-        config["env"] = args.env
-        config["num_episodes"] = args.num_episodes
-        config["playback_buffer_size"] = tune.choice(config["playback_buffer_size"])
-        config["playback_sample_size"] = tune.choice(config["playback_sample_size"])
-        config["target_network_update_rate"] = tune.choice(config["target_network_update_rate"])
+        config['env'] = args.env
+        config['num_episodes'] = args.num_episodes
+        config['playback_buffer_size'] = tune.choice(config['playback_buffer_size'])
+        config['playback_sample_size'] = tune.choice(config['playback_sample_size'])
+        config['target_network_update_rate'] = tune.choice(config['target_network_update_rate'])
+
+        num_samples = config.pop('num_samples')
 
         reporter = CLIReporter(metric_columns=["reward", "training_iteration"])
 
         tune.run(
             train_dqn,
             name='dqn-tune',
-            local_dir='runs',
+            local_dir='data',
             config=config,
-            num_samples=16,
-            stop={"training_iteration": args.num_episodes},
+            num_samples=num_samples,
+            stop={'training_iteration': args.num_episodes},
             progress_reporter=reporter)
 
     elif args.train != 'None':
 
         with open(args.train, 'r') as yaml_file:
             config = yaml.safe_load(yaml_file)
+
+        writer = SummaryWriter(
+                './{}/dqn-playback_buff_sz-{}-playback_sample_size-{}-target_network_update-{}'\
+                .format('data', config['playback_buffer_size'], config['playback_sample_size'], config['target_network_update_rate']), flush_secs=1)
+
+        config["writer"] = writer
 
         config["env"] = args.env
         config["num_episodes"] = args.num_episodes

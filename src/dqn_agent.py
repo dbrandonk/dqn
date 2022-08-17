@@ -144,6 +144,7 @@ class AgentDQN:
                     except BaseException:
                         pass
 
-                    tune.report(reward=avg_reward)
+                    if tune.is_session_enabled():
+                        tune.report(reward=avg_reward)
 
                     break
