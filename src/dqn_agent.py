@@ -17,7 +17,7 @@ DONE_INDEX = 4
 class AgentDQN:
     def __init__(
             self, action_space, observation_space, playback_size, num_episodes,
-            sample_batch_size, target_update_num_steps, writer, model_dir):
+            sample_batch_size, target_update_num_steps, writer):
         self.action_space = action_space
         self.observation_space = observation_space
 
@@ -27,7 +27,6 @@ class AgentDQN:
         self.sample_batch_size = sample_batch_size
         self.target_update_num_steps = target_update_num_steps
         self.writer = writer
-        self.model_dir = model_dir
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.q_model = FCNN(observation_space, action_space).to(self.device)
         self.target_q_model = FCNN(
@@ -137,9 +136,8 @@ class AgentDQN:
                         top_avg_reward = avg_reward
                         torch.save(
                             self.q_model.state_dict(),
-                            './{}/dqn-model-playback_buff_sz-{}\
-                            -playback_sample_size-{}\
-                            -target_network_update-{}'.format(self.model_dir, self.playback_size, self.sample_batch_size, self.target_update_num_steps))
+                            './dqn-model-playback_buff_sz-{}-playback_sample_size-{}-target_network_update-{}.pth'
+                            .format(self.playback_size, self.sample_batch_size, self.target_update_num_steps))
                     try:
                         self.writer.add_scalar(
                             'avg_reward', avg_reward, episode)

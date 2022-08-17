@@ -11,7 +11,9 @@ from fcnn import FCNN
 from nn_utils import predict
 
 
-def run_agent(env, q_model, num_episodes):
+def run_agent(env_name, q_model, num_episodes):
+
+    env = gym.make(env_name)
 
     for episode in range(num_episodes):
         state_current = np.array([env.reset()])
@@ -63,8 +65,7 @@ def train_dqn(config):
         num_episodes,
         playback_sample_size,
         target_network_update_rate,
-        writer,
-        config['model_dir']
+        writer
     )
 
     agent.learn(env)
@@ -72,16 +73,19 @@ def train_dqn(config):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--param_search', default='None', type=str)
-    parser.add_argument('--train', default='None', type=str)
-    parser.add_argument('--run', default='None', type=str)
+
+    mx_group = parser.add_mutually_exclusive_group()
+    mx_group.add_argument('--tune', default='None', type=str)
+    mx_group.add_argument('--train', default='None', type=str)
+    mx_group.add_argument('--run', default='None', type=str)
+
     parser.add_argument('--env', required=True, type=str)
     parser.add_argument('--num_episodes', required=True, type=int)
     args = parser.parse_args()
 
-    if args.param_search != 'None':
+    if args.tune != 'None':
 
-        with open(args.train, 'r') as yaml_file:
+        with open(args.tune, 'r') as yaml_file:
             config = yaml.safe_load(yaml_file)
 
         config["env"] = args.env
@@ -112,10 +116,9 @@ def main():
 
     elif args.run != 'None':
 
-        env = gym.make('LunarLander-v2')
         q_model = FCNN(env.observation_space.shape[0], env.action_space.n)
         q_model.load_state_dict(torch.load(args.run))
-        run_agent(env, q_model, args.num_episodes)
+        run_agent(args.env, q_model, args.num_episodes)
 
 
 if __name__ == "__main__":
