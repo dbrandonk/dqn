@@ -4,10 +4,10 @@ import numpy as np
 
 def train(data, target, model, optimizer, criterion, device):
 
-    if type(data) == np.ndarray:
+    if isinstance(data, np.ndarray):
         data = torch.from_numpy(data)
 
-    if type(target) == np.ndarray:
+    if isinstance(target, np.ndarray):
         target = torch.from_numpy(target)
 
     data = data.to(device)
@@ -23,7 +23,7 @@ def train(data, target, model, optimizer, criterion, device):
 
 def predict(model, data, device):
 
-    if type(data) == np.ndarray:
+    if isinstance(data, np.ndarray):
         data = torch.from_numpy(data)
 
     data = data.to(device)

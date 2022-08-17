@@ -1,15 +1,15 @@
-from functools import partial
 import argparse
 import gym
 import numpy as np
+from ray import tune
+from ray.tune import CLIReporter
 import torch
+from torch.utils.tensorboard import SummaryWriter
+import yaml
 from dqn_agent import AgentDQN
 from fcnn import FCNN
 from nn_utils import predict
-from ray import tune
-from ray.tune import CLIReporter
-from torch.utils.tensorboard import SummaryWriter
-import yaml
+
 
 def run_agent(env, q_model, num_episodes):
 
@@ -38,7 +38,6 @@ def run_agent(env, q_model, num_episodes):
 
 def train_dqn(config):
 
-    env_name = config['env']
     playback_buffer_size = config['playback_buffer_size']
     num_episodes = config['num_episodes']
     playback_sample_size = config['playback_sample_size']
@@ -47,10 +46,13 @@ def train_dqn(config):
     env = gym.make(config['env'])
 
     if config['data_dir'] != 'None':
-        writer = SummaryWriter('./{}/dqn-playback_buff_sz-{}\
-                -playback_sample_size-{}\
-                -target_network_update-{}'.format(config['data_dir'], playback_buffer_size, playback_sample_size, target_network_update_rate),
-                flush_secs = 1)
+        writer = SummaryWriter(
+                './{}/dqn-playback_buff_sz-{}-playback_sample_size-{}-target_network_update-{}'\
+                .format(config['data_dir'],
+                        playback_buffer_size,
+                        playback_sample_size,
+                        target_network_update_rate),
+                        flush_secs=1)
     else:
         writer = None
 
@@ -63,37 +65,40 @@ def train_dqn(config):
         target_network_update_rate,
         writer,
         config['model_dir']
-        )
+    )
 
     agent.learn(env)
+
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--param_search', default='None', type=str)
     parser.add_argument('--train', default='None', type=str)
     parser.add_argument('--run', default='None', type=str)
+    parser.add_argument('--env', required=True, type=str)
+    parser.add_argument('--num_episodes', required=True, type=int)
     args = parser.parse_args()
 
-    if False:
+    if args.param_search != 'None':
 
+        with open(args.train, 'r') as yaml_file:
+            config = yaml.safe_load(yaml_file)
 
-        config = {
-            "env": env,
-            "playback_buffer_size": tune.choice([2048, 4096, 8192, 16384, 32768]),
-            "num_episodes": 3000,
-            "playback_sample_size": tune.choice([32, 64, 128, 256, 512]),
-            "target_network_update_rate": tune.choice([1024, 2048, 4096, 8192, 16384])
-        }
+        config["env"] = args.env
+        config["num_episodes"] = args.num_episodes
+        config["playback_buffer_size"] = tune.choice(config["playback_buffer_size"])
+        config["playback_sample_size"] = tune.choice(config["playback_sample_size"])
+        config["target_network_update_rate"] = tune.choice(config["target_network_update_rate"])
 
-        reporter = CLIReporter( metric_columns=["reward", "training_iteration"])
+        reporter = CLIReporter(metric_columns=["reward", "training_iteration"])
 
-        result = tune.run(
+        tune.run(
             train_dqn,
-            name = 'dqn-tune',
-            local_dir = 'runs',
+            name='dqn-tune',
+            local_dir='runs',
             config=config,
             num_samples=16,
-            stop={"training_iteration": 2000},
+            stop={"training_iteration": args.num_episodes},
             progress_reporter=reporter)
 
     elif args.train != 'None':
@@ -101,6 +106,8 @@ def main():
         with open(args.train, 'r') as yaml_file:
             config = yaml.safe_load(yaml_file)
 
+        config["env"] = args.env
+        config["num_episodes"] = args.num_episodes
         train_dqn(config)
 
     elif args.run != 'None':
@@ -108,7 +115,7 @@ def main():
         env = gym.make('LunarLander-v2')
         q_model = FCNN(env.observation_space.shape[0], env.action_space.n)
         q_model.load_state_dict(torch.load(args.run))
-        run_agent(env, q_model, 100)
+        run_agent(env, q_model, args.num_episodes)
 
 
 if __name__ == "__main__":
