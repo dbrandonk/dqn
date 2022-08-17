@@ -1,12 +1,11 @@
-import copy
 from collections import deque
 import random
 import numpy as np
 import torch
+from ray import tune
 from fcnn import FCNN
 from nn_utils import train
 from nn_utils import predict
-from ray import tune
 
 CURRENT_STATE_INDEX = 0
 ACTION_INDEX = 1
