@@ -11,9 +11,8 @@ from fcnn import FCNN
 from nn_utils import predict
 
 
-def run_agent(env_name, q_model, num_episodes):
+def run_agent(env, q_model, num_episodes):
 
-    env = gym.make(env_name)
 
     for episode in range(num_episodes):
         state_current = np.array([env.reset()])
@@ -120,9 +119,10 @@ def main():
 
     elif args.run != 'None':
 
+        env = gym.make(args.env)
         q_model = FCNN(env.observation_space.shape[0], env.action_space.n)
         q_model.load_state_dict(torch.load(args.run))
-        run_agent(args.env, q_model, args.num_episodes)
+        run_agent(env, q_model, args.num_episodes)
 
 
 if __name__ == "__main__":
