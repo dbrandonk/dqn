@@ -66,7 +66,7 @@ def train_dqn(config):
     agent.learn(env)
 
 
-def dqn_runner(model):
+def dqn_runner(model, env):
 
     parser = argparse.ArgumentParser()
 
@@ -75,7 +75,6 @@ def dqn_runner(model):
     mx_group.add_argument('--train', default='None', type=str)
     mx_group.add_argument('--run', default='None', type=str)
 
-    parser.add_argument('--env', required=True, type=str)
     parser.add_argument('--num_episodes', required=True, type=int)
 
     args = parser.parse_args()
@@ -85,7 +84,6 @@ def dqn_runner(model):
         with open(args.tune, 'r') as yaml_file:
             config = yaml.safe_load(yaml_file)
 
-        env = gym.make(args.env)
         config['env'] = env
         config['model'] = model
 
@@ -118,7 +116,6 @@ def dqn_runner(model):
 
         config["writer"] = writer
 
-        env = gym.make(args.env)
         config['env'] = env
         config['model'] = model
         config["num_episodes"] = args.num_episodes
@@ -126,11 +123,12 @@ def dqn_runner(model):
 
     elif args.run != 'None':
 
-        env = gym.make(args.env)
         q_model = model(env.observation_space.shape[0], env.action_space.n)
         q_model.load_state_dict(torch.load(args.run))
         run_agent(env, q_model, args.num_episodes)
 
 
 if __name__ == "__main__":
-    dqn_runner(FCNN)
+
+    env = gym.make('LunarLander-v2')
+    dqn_runner(FCNN, env)
