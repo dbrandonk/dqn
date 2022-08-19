@@ -44,7 +44,8 @@ def train_dqn(config):
     playback_sample_size = config['playback_sample_size']
     target_network_update_rate = config['target_network_update_rate']
 
-    env = gym.make(config['env'])
+    env = config['env']
+    model = config['model']
 
     try:
         writer = config['writer']
@@ -58,13 +59,14 @@ def train_dqn(config):
         num_episodes,
         playback_sample_size,
         target_network_update_rate,
-        writer
+        writer,
+        model
     )
 
     agent.learn(env)
 
 
-def main():
+def dqn_runner(model):
 
     parser = argparse.ArgumentParser()
 
@@ -83,7 +85,10 @@ def main():
         with open(args.tune, 'r') as yaml_file:
             config = yaml.safe_load(yaml_file)
 
-        config['env'] = args.env
+        env = gym.make(args.env)
+        config['env'] = env
+        config['model'] = model
+
         config['num_episodes'] = args.num_episodes
         config['playback_buffer_size'] = tune.choice(config['playback_buffer_size'])
         config['playback_sample_size'] = tune.choice(config['playback_sample_size'])
@@ -113,17 +118,19 @@ def main():
 
         config["writer"] = writer
 
-        config["env"] = args.env
+        env = gym.make(args.env)
+        config['env'] = env
+        config['model'] = model
         config["num_episodes"] = args.num_episodes
         train_dqn(config)
 
     elif args.run != 'None':
 
         env = gym.make(args.env)
-        q_model = FCNN(env.observation_space.shape[0], env.action_space.n)
+        q_model = model(env.observation_space.shape[0], env.action_space.n)
         q_model.load_state_dict(torch.load(args.run))
         run_agent(env, q_model, args.num_episodes)
 
 
 if __name__ == "__main__":
-    main()
+    dqn_runner(FCNN)

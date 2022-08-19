@@ -3,7 +3,6 @@ import random
 import numpy as np
 import torch
 from ray import tune
-from fcnn import FCNN
 from nn_utils import train
 from nn_utils import predict
 
@@ -17,7 +16,7 @@ DONE_INDEX = 4
 class AgentDQN:
     def __init__(
             self, action_space, observation_space, playback_size, num_episodes,
-            sample_batch_size, target_update_num_steps, writer):
+            sample_batch_size, target_update_num_steps, writer, model):
         self.action_space = action_space
         self.observation_space = observation_space
 
@@ -28,8 +27,8 @@ class AgentDQN:
         self.target_update_num_steps = target_update_num_steps
         self.writer = writer
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.q_model = FCNN(observation_space, action_space).to(self.device)
-        self.target_q_model = FCNN(
+        self.q_model = model(observation_space, action_space).to(self.device)
+        self.target_q_model = model(
             observation_space,
             action_space).to(
             self.device)
@@ -148,3 +147,5 @@ class AgentDQN:
                         tune.report(reward=avg_reward)
 
                     break
+
+        env.close()
