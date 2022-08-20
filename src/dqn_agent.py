@@ -58,10 +58,10 @@ class AgentDQN:
 
     def __update_network(self, sample_batch):
 
-        current_states = np.vstack(sample_batch[:, CURRENT_STATE_INDEX])
+        current_states = np.stack(sample_batch[:, CURRENT_STATE_INDEX])
         rewards = np.vstack(sample_batch[:, REWARD_INDEX])
         actions = np.vstack(sample_batch[:, ACTION_INDEX]).T[0]
-        next_states = np.vstack(sample_batch[:, NEXT_STATE_INDEX])
+        next_states = np.stack(sample_batch[:, NEXT_STATE_INDEX])
 
         target_predictions = predict(
             self.target_q_model, next_states, self.device)
@@ -95,7 +95,11 @@ class AgentDQN:
         top_avg_reward = 0
 
         for episode in range(self.num_episodes):
-            state_current = np.array([env.reset()])
+
+            state_current = env.reset()
+            if not isinstance(state_current, np.ndarray):
+                state_current = np.array([state_current])
+
             total_episode_rewards = 0.0
             frames = 0
 
@@ -106,7 +110,9 @@ class AgentDQN:
                 action = self.__e_greedy_action(state_current)
 
                 next_state, reward, done, _ = env.step(action)
-                next_state = np.array([next_state])
+                if not isinstance(next_state, np.ndarray):
+                    next_state = np.array([next_state])
+
                 total_episode_rewards += reward
 
                 self.playback_buffer.append(
@@ -137,6 +143,9 @@ class AgentDQN:
                             self.q_model.state_dict(),
                             './dqn-model-playback_buff_sz-{}-playback_sample_size-{}-target_network_update-{}.pth'
                             .format(self.playback_size, self.sample_batch_size, self.target_update_num_steps))
+
+                    print (f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} EPSILON: {0} FRAMES: {frames}')
+
                     try:
                         self.writer.add_scalar(
                             'avg_reward', avg_reward, episode)

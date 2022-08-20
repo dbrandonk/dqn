@@ -15,7 +15,11 @@ def run_agent(env, q_model, num_episodes):
 
 
     for episode in range(num_episodes):
-        state_current = np.array([env.reset()])
+        state_current = env.reset()
+
+        if not isinstance(state_current, np.ndarray):
+            state_current = np.array([state_current])
+
         total_episode_rewards = 0
         frames = 0
 
@@ -26,7 +30,9 @@ def run_agent(env, q_model, num_episodes):
             action = np.argmax(predict(q_model, state_current, 'cpu'))
             next_state, reward, done, _ = env.step(action)
             total_episode_rewards = total_episode_rewards + reward
-            state_current = np.array([next_state])
+            state_current = next_state
+            if not isinstance(state_current, np.ndarray):
+                state_current = np.array([state_current])
 
             if done:
                 print(
@@ -54,7 +60,7 @@ def train_dqn(config):
 
     agent = AgentDQN(
         env.action_space.n,
-        env.observation_space.shape[0],
+        env.observation_space,
         playback_buffer_size,
         num_episodes,
         playback_sample_size,
@@ -123,7 +129,7 @@ def dqn_runner(model, env):
 
     elif args.run != 'None':
 
-        q_model = model(env.observation_space.shape[0], env.action_space.n)
+        q_model = model(env.observation_space, env.action_space.n)
         q_model.load_state_dict(torch.load(args.run))
         run_agent(env, q_model, args.num_episodes)
 
