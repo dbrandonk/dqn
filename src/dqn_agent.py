@@ -119,7 +119,7 @@ class AgentDQN:
                 self.playback_buffer.append(
                     [state_current, action, reward, next_state, done])
 
-                if ((len(self.playback_buffer) > self.sample_batch_size) and (steps % self.dqn_train_rate)):
+                if ((len(self.playback_buffer) > self.sample_batch_size) and (steps % self.dqn_train_rate == 0)):
                     sample_batch = self.__get_sample_batch()
                     self.__update_network(sample_batch)
 
@@ -145,7 +145,7 @@ class AgentDQN:
                             './dqn-model-playback_buff_sz-{}-playback_sample_size-{}-target_network_update-{}.pth'
                             .format(self.playback_size, self.sample_batch_size, self.target_update_num_steps))
 
-                    print (f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} EPSILON: {0} FRAMES: {frames}')
+                    print (f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} EPSILON: {self.epsilon} FRAMES: {frames}')
 
                     try:
                         self.writer.add_scalar(

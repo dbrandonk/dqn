@@ -11,6 +11,7 @@ COMPRESSED_IMAGE_SZ = 84
 class CompressedImageEnv():
     def __init__(self, env):
 
+        self.STEP_AMOUNT = 4
         self.env = env
         self.action_space = env.action_space
         self.observation_space = [84,84]
@@ -24,17 +25,36 @@ class CompressedImageEnv():
         #state_brg = cv2.cvtColor(state, cv2.COLOR_RGB2BGR)
         state_gray = cv2.cvtColor(state, cv2.COLOR_RGB2GRAY)
         state_gray_resize = cv2.resize(state_gray, (COMPRESSED_IMAGE_SZ, COMPRESSED_IMAGE_SZ))
+        state_gray_resize_temp = np.expand_dims(state_gray_resize, axis=0)
+        state_gray_resize = state_gray_resize_temp.copy()
+
+        for step in range(self.STEP_AMOUNT - 1):
+            state_gray_resize = np.vstack((state_gray_resize, state_gray_resize_temp))
 
         return state_gray_resize
 
     def step(self, action):
-        state, reward, done, info = self.env.step(action)
 
-        #state_brg = cv2.cvtColor(state, cv2.COLOR_RGB2BGR)
-        state_gray = cv2.cvtColor(state, cv2.COLOR_RGB2GRAY)
-        state_gray_resize = cv2.resize(state_gray, (COMPRESSED_IMAGE_SZ, COMPRESSED_IMAGE_SZ))
+        state_gray_resize = None
+        reward_total_step = 0
 
-        return state_gray_resize, reward, done, info
+        for step in range(self.STEP_AMOUNT):
+            state, reward, done, info = self.env.step(action)
+
+            reward_total_step += reward
+
+            state_gray = cv2.cvtColor(state, cv2.COLOR_RGB2GRAY)
+
+            if not isinstance(state_gray_resize, np.ndarray):
+                state_gray_resize = cv2.resize(state_gray, (COMPRESSED_IMAGE_SZ, COMPRESSED_IMAGE_SZ))
+                state_gray_resize = np.expand_dims(state_gray_resize, axis=0)
+            else:
+                state_gray_resize_temp = cv2.resize(state_gray, (COMPRESSED_IMAGE_SZ, COMPRESSED_IMAGE_SZ))
+                state_gray_resize_temp = np.expand_dims(state_gray_resize_temp, axis=0)
+                state_gray_resize = np.vstack((state_gray_resize, state_gray_resize_temp))
+
+
+        return state_gray_resize, reward_total_step, done, info
 
 def main():
 
