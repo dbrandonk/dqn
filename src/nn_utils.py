@@ -29,8 +29,13 @@ def predict(model, data, device):
     data = data.to(device)
 
     model.eval()
-    with torch.no_grad():
-        out = model(data)
+
+    try:
+        with torch.no_grad():
+            out = model(data)
+    except:
+        with torch.no_grad():
+            out = model(data.unsqueeze(0))
 
     out = out.cpu().detach().numpy()
 

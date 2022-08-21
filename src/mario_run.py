@@ -44,14 +44,20 @@ class CompressedImageEnv():
             reward_total_step += reward
 
             state_gray = cv2.cvtColor(state, cv2.COLOR_RGB2GRAY)
+            state_gray_resize_temp = cv2.resize(state_gray, (COMPRESSED_IMAGE_SZ, COMPRESSED_IMAGE_SZ))
+            state_gray_resize_temp = np.expand_dims(state_gray_resize_temp, axis=0)
 
             if not isinstance(state_gray_resize, np.ndarray):
-                state_gray_resize = cv2.resize(state_gray, (COMPRESSED_IMAGE_SZ, COMPRESSED_IMAGE_SZ))
-                state_gray_resize = np.expand_dims(state_gray_resize, axis=0)
-            else:
-                state_gray_resize_temp = cv2.resize(state_gray, (COMPRESSED_IMAGE_SZ, COMPRESSED_IMAGE_SZ))
-                state_gray_resize_temp = np.expand_dims(state_gray_resize_temp, axis=0)
+                state_gray_resize = state_gray_resize_temp.copy()
+            elif isinstance(state_gray_resize, np.ndarray):
                 state_gray_resize = np.vstack((state_gray_resize, state_gray_resize_temp))
+
+            if done:
+                for step_done in range(step+1, self.STEP_AMOUNT):
+                    state_gray_resize = np.vstack((state_gray_resize, state_gray_resize_temp))
+
+                break
+
 
 
         return state_gray_resize, reward_total_step, done, info
