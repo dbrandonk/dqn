@@ -16,7 +16,8 @@ DONE_INDEX = 4
 class AgentDQN:
     def __init__(
             self, action_space, observation_space, playback_size, num_episodes,
-            sample_batch_size, target_update_num_steps, writer, model, dqn_train_rate):
+            sample_batch_size, target_update_num_steps, writer, model, dqn_train_rate, epsilon_reduction):
+
         self.action_space = action_space
         self.observation_space = observation_space
 
@@ -40,7 +41,7 @@ class AgentDQN:
             lr=0.0001)
 
         self.epsilon = 1.0
-        self.epsilon_reduction = 0.999
+        self.epsilon_reduction = epsilon_reduction
         self.gamma = 0.99
 
     def __e_greedy_action(self, state):
@@ -145,7 +146,7 @@ class AgentDQN:
                             './dqn-model-playback_buff_sz-{}-playback_sample_size-{}-target_network_update-{}.pth'
                             .format(self.playback_size, self.sample_batch_size, self.target_update_num_steps))
 
-                    print (f'EPISODE: {episode} EPISODE REWARD: {total_episode_rewards} EPSILON: {self.epsilon} FRAMES: {frames}')
+                    print (f'EPISODE: {episode} EPISODE AVG REWARD: {avg_reward} EPSILON: {self.epsilon} FRAMES: {frames}')
 
                     try:
                         self.writer.add_scalar(

@@ -49,6 +49,7 @@ def train_dqn(config):
     playback_sample_size = config['playback_sample_size']
     target_network_update_rate = config['target_network_update_rate']
     dqn_train_rate= config['dqn_train_rate']
+    epsilon_reduction = config['epsilon_reduction']
 
     env = config['env']
     model = config['model']
@@ -67,7 +68,8 @@ def train_dqn(config):
         target_network_update_rate,
         writer,
         model,
-        dqn_train_rate
+        dqn_train_rate,
+        epsilon_reduction
     )
 
     agent.learn(env)
