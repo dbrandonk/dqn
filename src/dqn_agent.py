@@ -16,7 +16,7 @@ DONE_INDEX = 4
 class AgentDQN:
     def __init__(
             self, action_space, observation_space, playback_size, num_episodes,
-            sample_batch_size, target_update_num_steps, writer, model):
+            sample_batch_size, target_update_num_steps, writer, model, dqn_train_rate):
         self.action_space = action_space
         self.observation_space = observation_space
 
@@ -26,6 +26,7 @@ class AgentDQN:
         self.sample_batch_size = sample_batch_size
         self.target_update_num_steps = target_update_num_steps
         self.writer = writer
+        self.dqn_train_rate = dqn_train_rate
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.q_model = model(observation_space, action_space).to(self.device)
         self.target_q_model = model(
@@ -118,7 +119,7 @@ class AgentDQN:
                 self.playback_buffer.append(
                     [state_current, action, reward, next_state, done])
 
-                if len(self.playback_buffer) > self.sample_batch_size:
+                if ((len(self.playback_buffer) > self.sample_batch_size) and (steps % self.dqn_train_rate)):
                     sample_batch = self.__get_sample_batch()
                     self.__update_network(sample_batch)
 
