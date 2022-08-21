@@ -2,9 +2,9 @@ from torch import nn
 
 LAYER_WIDTH = 64
 
-class FCNN(nn.Module):
+class LunarLanderNet(nn.Module):
     def __init__(self, observation_space, action_space):
-        super(FCNN, self).__init__()
+        super(LunarLanderNet, self).__init__()
 
         self.fc1 = nn.Linear(observation_space.shape[0], LAYER_WIDTH)
         self.fc2 = nn.Linear(LAYER_WIDTH, LAYER_WIDTH)

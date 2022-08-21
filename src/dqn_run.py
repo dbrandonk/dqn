@@ -7,7 +7,6 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 import yaml
 from dqn_agent import AgentDQN
-from fcnn import FCNN
 from nn_utils import predict
 
 
@@ -133,8 +132,3 @@ def dqn_runner(model, env):
         q_model.load_state_dict(torch.load(args.run))
         run_agent(env, q_model, args.num_episodes)
 
-
-if __name__ == "__main__":
-
-    env = gym.make('LunarLander-v2')
-    dqn_runner(FCNN, env)
