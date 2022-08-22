@@ -44,21 +44,21 @@ class AgentDQN:
         self.epsilon_reduction = epsilon_reduction
         self.gamma = 0.99
 
-    def __e_greedy_action(self, state):
+    def _e_greedy_action(self, state):
         if np.random.random() < self.epsilon:
             action = np.random.randint(self.action_space)
         else:
             action = np.argmax(predict(self.q_model, state, self.device))
         return action
 
-    def __get_sample_batch(self):
+    def _get_sample_batch(self):
         sample_batch = random.sample(
             self.playback_buffer,
             self.sample_batch_size)
         sample_batch = np.array(sample_batch, dtype=object)
         return sample_batch
 
-    def __update_network(self, sample_batch):
+    def _update_network(self, sample_batch):
 
         current_states = np.stack(sample_batch[:, CURRENT_STATE_INDEX])
         rewards = np.vstack(sample_batch[:, REWARD_INDEX])
@@ -109,7 +109,7 @@ class AgentDQN:
                 steps += 1
                 frames += 1
 
-                action = self.__e_greedy_action(state_current)
+                action = self._e_greedy_action(state_current)
 
                 next_state, reward, done, _ = env.step(action)
                 if not isinstance(next_state, np.ndarray):
@@ -121,8 +121,8 @@ class AgentDQN:
                     [state_current, action, reward, next_state, done])
 
                 if ((len(self.playback_buffer) > self.sample_batch_size) and (steps % self.dqn_train_rate == 0)):
-                    sample_batch = self.__get_sample_batch()
-                    self.__update_network(sample_batch)
+                    sample_batch = self._get_sample_batch()
+                    self._update_network(sample_batch)
 
                 state_current = next_state
 
