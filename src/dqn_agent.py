@@ -1,3 +1,4 @@
+import copy
 from collections import deque
 import random
 import numpy as np
@@ -122,7 +123,8 @@ class AgentDQN:
 
                 if ((len(self.playback_buffer) > self.sample_batch_size) and (steps % self.dqn_train_rate == 0)):
                     sample_batch = self._get_sample_batch()
-                    self._update_network(sample_batch)
+                    self._update_network(copy.deepcopy(sample_batch))
+                    del sample_batch
 
                 state_current = next_state
 
