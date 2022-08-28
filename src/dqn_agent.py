@@ -23,7 +23,8 @@ class AgentDQN:
         self.observation_space = observation_space
 
         self.playback_size = playback_size
-        self.playback_buffer = deque(maxlen=playback_size)
+        self.playback_buffer = None
+        self.obs_collected = 0
         self.num_episodes = num_episodes
         self.sample_batch_size = sample_batch_size
         self.target_update_num_steps = target_update_num_steps
@@ -53,10 +54,8 @@ class AgentDQN:
         return action
 
     def _get_sample_batch(self):
-        sample_batch = random.sample(
-            self.playback_buffer,
-            self.sample_batch_size)
-        sample_batch = np.array(sample_batch, dtype=object)
+        sample_indexes = np.random.randint((self.playback_buffer.shape[0] - self.obs_collected), self.playback_buffer.shape[0], size = self.sample_batch_size)
+        sample_batch = np.copy(self.playback_buffer[sample_indexes])
         return sample_batch
 
     def _update_network(self, sample_batch):
@@ -118,13 +117,23 @@ class AgentDQN:
 
                 total_episode_rewards += reward
 
-                self.playback_buffer.append(
-                    [state_current, action, reward, next_state, done])
+                self.obs_collected += 1
+                if self.obs_collected > self.playback_size:
+                    self.obs_collected = self.playback_size
 
-                if ((len(self.playback_buffer) > self.sample_batch_size) and (steps % self.dqn_train_rate == 0)):
+                if (self.playback_buffer == None):
+                    self.playback_buffer = np.array([state_current, action, reward, next_state, done], dtype=object)
+                    self.playback_buffer = np.vstack([self.playback_buffer]*self.playback_size)
+                else:
+                    self.playback_buffer = np.vstack((self.playback_buffer, np.array([state_current, action, reward, next_state, done], dtype=object)))
+
+                while(self.playback_buffer.shape[0] > self.playback_size):
+                    self.playback_buffer = self.playback_buffer[1:]
+
+                if ((self.obs_collected > self.sample_batch_size) and (steps % self.dqn_train_rate == 0)):
                     sample_batch = self._get_sample_batch()
-                    self._update_network(copy.deepcopy(sample_batch))
-                    del sample_batch
+                    self._update_network(sample_batch)
+
 
                 state_current = next_state
 
